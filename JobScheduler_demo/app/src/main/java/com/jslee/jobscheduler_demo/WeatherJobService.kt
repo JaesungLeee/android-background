@@ -32,41 +32,45 @@ class WeatherJobService: JobService() {
     private fun getCurrentWeather(params: JobParameters) {
         Log.e(LOG_TAG, "getCurrentWeather()")
 
-        Thread {
-            WeatherClient.retrofitInstance.getWeatherData(LATITUDE, LONGTITUDE, APP_ID)
-                .enqueue(object : Callback<WeatherResponseDTO> {
-                    override fun onResponse(
-                        call: Call<WeatherResponseDTO>,
-                        response: Response<WeatherResponseDTO>
-                    ) {
-                        if (response.code() == 200) {
-                            val weatherResponse = response.body()
+        val thread = Thread {
+            try {
+                WeatherClient.retrofitInstance.getWeatherData(LATITUDE, LONGTITUDE, APP_ID)
+                    .enqueue(object : Callback<WeatherResponseDTO> {
+                        override fun onResponse(
+                            call: Call<WeatherResponseDTO>,
+                            response: Response<WeatherResponseDTO>
+                        ) {
+                            if (response.code() == 200) {
+                                val weatherResponse = response.body()
 
-                            var temp = weatherResponse?.main?.temp?.minus(273.15)
-                            val minimumTemp = weatherResponse?.main?.minTemp?.minus(273.15)
-                            val maximumTemp = weatherResponse?.main?.maxTemp?.minus(273.15)
+                                var temp = weatherResponse?.main?.temp?.minus(273.15)
+                                val minimumTemp = weatherResponse?.main?.minTemp?.minus(273.15)
+                                val maximumTemp = weatherResponse?.main?.maxTemp?.minus(273.15)
 
-                            var averageTemp = (minimumTemp?.plus(maximumTemp!!))?.div(2)
+                                var averageTemp = (minimumTemp?.plus(maximumTemp!!))?.div(2)
 
-                            val tempText = temp?.roundToInt()
-                            val averageTempText = averageTemp?.roundToInt()
+                                val tempText = temp?.roundToInt()
+                                val averageTempText = averageTemp?.roundToInt()
 
-                            val title = "Weather"
-                            val message = "Temperature : $tempText, Average : $averageTempText"
-                            val notificationId = 100
-                            showNotification(applicationContext, title, message, notificationId)
+                                Log.e(LOG_TAG, "$tempText")
+                                val title = "Weather"
+                                val message = "Temperature : $tempText, Average : $averageTempText"
+                                val notificationId = 100
+                                showNotification(applicationContext, title, message, notificationId)
 
+                            }
                         }
-                    }
 
-                    override fun onFailure(call: Call<WeatherResponseDTO>, t: Throwable) {
-                        Log.e(LOG_TAG, "getCurrentWeather Failed by ${t.message}")
-                    }
+                        override fun onFailure(call: Call<WeatherResponseDTO>, t: Throwable) {
+                            Log.e(LOG_TAG, "getCurrentWeather Failed by ${t.message}")
+                        }
 
-                })
+                    })
+            } catch (e: InterruptedException) { }
 
             jobFinished(params, false)
         }
+        thread.start()
     }
 
     private fun showNotification(context: Context, title: String, message: String, notificationId: Int) {
